@@ -1,0 +1,46 @@
+name: recette
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branche, étiquette ou commit de mathieublandin-create/taskapp à construire"
+        default: "lot/LOT-001"
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mathieublandin-create/taskapp
+          ref: ${{ inputs.ref }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          VITE_ENV: recette
+          VITE_BASE_PATH: /
+          VITE_APP_ORIGIN: https://donejuan-recette.github.io
+          VITE_GOOGLE_WEB_CLIENT_ID: 275071465945-44uks3etb61qm9lqs9bc6upvlet616v7.apps.googleusercontent.com
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
